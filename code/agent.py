@@ -69,6 +69,29 @@ FALLBACK = {
     "request_type": "product_issue",
 }
 
+VALID_STATUSES = {"replied", "escalated"}
+VALID_REQUEST_TYPES = {"product_issue", "feature_request", "bug", "invalid"}
+# Map LLM hallucinated types to the closest valid value
+REQUEST_TYPE_MAP = {
+    "platform_issue": "bug",
+    "technical_issue": "bug",
+    "service_issue": "bug",
+    "complaint": "product_issue",
+    "question": "product_issue",
+    "general_inquiry": "product_issue",
+}
+
+
+def _sanitise(result: dict) -> dict:
+    if result.get("status", "").lower() not in VALID_STATUSES:
+        result["status"] = "escalated"
+    else:
+        result["status"] = result["status"].lower()
+
+    rt = result.get("request_type", "product_issue").lower()
+    result["request_type"] = REQUEST_TYPE_MAP.get(rt, rt if rt in VALID_REQUEST_TYPES else "product_issue")
+    return result
+
 
 def _resolve_product_area(result: dict, docs: list[Document], company: str) -> str:
     """
@@ -129,6 +152,7 @@ Relevant support documents:
             for key in ("status", "product_area", "response", "justification", "request_type"):
                 if key not in result:
                     return FALLBACK
+            result = _sanitise(result)
             result["product_area"] = _resolve_product_area(result, docs, company)
             return result
         except (json.JSONDecodeError, TypeError):
