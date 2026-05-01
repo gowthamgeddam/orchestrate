@@ -63,11 +63,30 @@ def _format_docs(docs: list[Document]) -> str:
 
 FALLBACK = {
     "status": "escalated",
-    "product_area": "unknown",
+    "product_area": "",
     "response": "Escalate to a human",
     "justification": "Agent failed to produce a structured response.",
     "request_type": "product_issue",
 }
+
+
+def _resolve_product_area(result: dict, docs: list[Document], company: str) -> str:
+    """
+    Determine the final product_area reliably:
+    - Escalated tickets → ""
+    - Invalid/off-topic with no clear domain → ""
+    - Visa tickets → keep the LLM's content-derived label (travel_support etc.)
+    - Everything else → use the top retrieved doc's normalised product_area
+    """
+    if result.get("status") == "escalated":
+        return ""
+    if result.get("request_type") == "invalid" and company.strip() in ("None", ""):
+        return ""
+    if company.strip() == "Visa":
+        return result.get("product_area", "")
+    if docs:
+        return docs[0].product_area
+    return ""
 
 
 class TriageAgent:
@@ -110,6 +129,7 @@ Relevant support documents:
             for key in ("status", "product_area", "response", "justification", "request_type"):
                 if key not in result:
                     return FALLBACK
+            result["product_area"] = _resolve_product_area(result, docs, company)
             return result
         except (json.JSONDecodeError, TypeError):
             return FALLBACK
