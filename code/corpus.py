@@ -18,11 +18,36 @@ DOMAIN_MAP = {
 }
 
 
+# Maps raw directory names to the normalized product_area labels used in output.
+_CATEGORY_NORM: dict[str, str] = {
+    "hackerrank_community": "community",
+    "privacy-and-legal": "privacy",
+    "pro-and-max-plans": "pro_and_max_plans",
+    "identity-management-sso-jit-scim": "identity_management",
+    "claude-api-and-console": "claude_api",
+    "claude-mobile-apps": "claude_mobile",
+    "claude-in-chrome": "claude_in_chrome",
+    "claude-for-education": "claude_for_education",
+    "claude-for-government": "claude_for_government",
+    "claude-for-nonprofits": "claude_for_nonprofits",
+    "team-and-enterprise-plans": "team_and_enterprise",
+    "amazon-bedrock": "amazon_bedrock",
+    "general-help": "general_help",
+}
+
+
+def normalize_category(raw: str) -> str:
+    if raw in _CATEGORY_NORM:
+        return _CATEGORY_NORM[raw]
+    return raw.replace("-", "_")
+
+
 @dataclass
 class Document:
     path: str
-    domain: str        # HackerRank | Claude | Visa
-    category: str      # subdirectory name (e.g. "screen", "privacy-and-legal")
+    domain: str            # HackerRank | Claude | Visa
+    category: str          # raw subdirectory name (e.g. "screen", "privacy-and-legal")
+    product_area: str      # normalized label to use in output (e.g. "screen", "privacy")
     title: str
     content: str
 
@@ -74,6 +99,7 @@ def load_corpus(domain_filter: Optional[str] = None) -> list[Document]:
                 path=str(md_path.relative_to(REPO_ROOT)),
                 domain=domain_label,
                 category=category,
+                product_area=normalize_category(category),
                 title=title,
                 content=content,
             ))

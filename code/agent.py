@@ -20,16 +20,15 @@ For each support ticket you receive, respond with a single JSON object containin
 - "request_type": one of "product_issue", "feature_request", "bug", "invalid"
 
 PRODUCT AREA RULES:
-- Use the category label shown in parentheses next to the most relevant document, e.g. "(category: screen)" → product_area = "screen".
-- Normalize the label: replace hyphens with underscores and remove any "hackerrank_" prefix.
-  Examples: "privacy-and-legal" → "privacy", "hackerrank_community" → "community", "conversation-management" → "conversation_management".
-- For Visa tickets, derive a more specific label from the content:
+- Each retrieved document has a label in the format "use_as_product_area: <label>". Copy that label exactly from the MOST relevant document.
+- Do NOT invent a new label. Only use a label that appears in the retrieved documents.
+- For Visa tickets, override the label based on content:
   - Travel-related (cheques, forex, travel card, travel insurance) → "travel_support"
   - Lost/stolen card, card reporting, emergency contacts → "general_support"
   - Fraud, disputed transactions, unauthorized charges → "fraud"
   - Merchant or business queries → "merchant_support"
 - For escalated tickets, set product_area to "".
-- For invalid/out-of-scope tickets (request_type="invalid") with no clear domain, set product_area to "".
+- For tickets with request_type="invalid" and no identifiable product domain (e.g. pure off-topic, simple thank-you), set product_area to "".
 
 ESCALATION RULES — set status="escalated", response="Escalate to a human", product_area="" when:
 - The ticket requests an action that ONLY an admin or account owner can perform (e.g. restoring removed seats, reversing charges, unlocking an account by force).
@@ -57,7 +56,7 @@ def _format_docs(docs: list[Document]) -> str:
     parts = []
     for i, doc in enumerate(docs, 1):
         parts.append(
-            f"--- Document {i}: [{doc.domain}] {doc.title} (category: {doc.category}) ---\n{doc.content[:1200]}"
+            f"--- Document {i}: [{doc.domain}] {doc.title} | use_as_product_area: {doc.product_area} ---\n{doc.content[:1200]}"
         )
     return "\n\n".join(parts)
 
